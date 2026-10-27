@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Our Love Universe | 致 抓只小喵</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #0f172a;
+            color: #f8fafc;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* 动态星空与爱心背景 Canvas */
+        #bgCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* 音乐播放器悬浮按钮 */
+        .music-btn {
+            position: fixed;
+            top: 25px;
+            right: 25px;
+            width: 55px;
+            height: 55px;
+            background: linear-gradient(135deg, #ff4757, #ff6b81);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(255, 71, 87, 0.6);
+            z-index: 1000;
+            transition: all 0.3s;
+        }
+        .music-btn.playing { animation: spin 4s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        .container {
+            position: relative;
+            z-index: 10;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        h1 {
+            font-size: 3rem;
+            background: linear-gradient(to right, #ff4757, #ffa502, #ff6b81);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+        .subtitle { color: #94a3b8; font-size: 1.1rem; }
+
+        /* 通用卡片样式 */
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 30px;
+            margin-bottom: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        /* 恋爱计时器 */
+        .timer-title { text-align: center; color: #cbd5e1; margin-bottom: 20px; }
+        .timer-grid {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .time-box {
+            background: rgba(255, 71, 87, 0.15);
+            border: 1px solid rgba(255, 71, 87, 0.3);
+            border-radius: 16px;
+            padding: 15px 20px;
+            text-align: center;
+            min-width: 90px;
+        }
+        .time-box span { display: block; font-size: 2.2rem; font-weight: bold; color: #ff4757; }
+        .time-box label { font-size: 0.85rem; color: #94a3b8; }
+
+        .section-title {
+            font-size: 1.8rem;
+            color: #f1f5f9;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* 可交互翻转盲盒卡片 */
+        .secrets-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        .flip-card {
+            background-color: transparent;
+            height: 180px;
+            perspective: 1000px;
+            cursor: pointer;
+        }
+        .flip-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.8s;
+            transform-style: preserve-3d;
+        }
+        .flip-card.flipped .flip-card-inner { transform: rotateY(180deg); }
+        .flip-front, .flip-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            border-radius: 18px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        }
+        .flip-front {
+            background: linear-gradient(135deg, #1e293b, #334155);
+            border: 1px dashed rgba(255, 71, 87, 0.5);
+            color: #ff4757;
+        }
+        .flip-back {
+            background: linear-gradient(135deg, #ff4757, #ff6b81);
+            color: white;
+            transform: rotateY(180deg);
+        }
+
+        /* 拍立得回忆相册墙 */
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 25px;
+        }
+        .polaroid {
+            background: #fff;
+            padding: 12px 12px 20px 12px;
+            border-radius: 12px;
+            color: #333;
+            text-align: center;
+            transform: rotate(-2deg);
+            transition: all 0.4s ease;
+            cursor: pointer;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        .polaroid:nth-child(even) { transform: rotate(3deg); }
+        .polaroid:hover {
+            transform: scale(1.08) rotate(0deg);
+            z-index: 50;
+            box-shadow: 0 15px 35px rgba(255, 71, 87, 0.4);
+        }
+        .polaroid img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            border-radius: 6px;
+        }
+        .polaroid p { margin-top: 12px; font-weight: 500; font-size: 0.95rem; }
+
+        /* 互动心动按键 */
+        .interactive-box {
+            text-align: center;
+            padding: 20px;
+        }
+        .heart-btn {
+            background: linear-gradient(135deg, #ff4757, #ff6b81);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 10px 25px rgba(255, 71, 87, 0.5);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .heart-btn:hover { transform: scale(1.05); box-shadow: 0 15px 35px rgba(255, 71, 87, 0.7); }
+        .heart-btn:active { transform: scale(0.95); }
+
+        /* 弹窗情书 Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal-content {
+            background: #1e293b;
+            border: 1px solid #ff4757;
+            border-radius: 20px;
+            max-width: 500px;
+            width: 100%;
+            padding: 30px;
+            position: relative;
+            text-align: center;
+            animation: popup 0.4s ease-out;
+        }
+        @keyframes popup { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .close-btn {
+            position: absolute;
+            top: 15px; right: 20px;
+            font-size: 1.5rem; color: #94a3b8; cursor: pointer;
+        }
+
+        footer { text-align: center; padding: 40px; color: #64748b; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+
+    <!-- 背景音乐 -->
+    <div class="music-btn" id="musicBtn" onclick="toggleMusic()">🎵</div>
+    <audio id="bgm" src="bgm.mp3" loop></audio>
+
+    <!-- 动态爱心背景画布 -->
+    <canvas id="bgCanvas"></canvas>
+
+    <div class="container">
+        <!-- 头部标题 -->
+        <header>
+            <h1>To: 小喵 🐱</h1>
+            <p class="subtitle">属于我们俩的专属浪漫空间</p>
+        </header>
+
+        <!-- 恋爱实时计时器 -->
+        <div class="glass-card">
+            <h2 class="timer-title">💖 我们已经并肩走过了 💖</h2>
+            <div class="timer-grid">
+                <div class="time-box"><span id="days">0</span><label>Days 天</label></div>
+                <div class="time-box"><span id="hours">0</span><label>Hours 时</label></div>
+                <div class="time-box"><span id="minutes">0</span><label>Mins 分</label></div>
+                <div class="time-box"><span id="seconds">0</span><label>Secs 秒</label></div>
+            </div>
+        </div>
+
+        <!-- 可点击翻转的隐藏秘密/情话盲盒 -->
+        <div class="glass-card">
+            <h2 class="section-title">🎁 点击卡片解锁心动盲盒</h2>
+            <div class="secrets-grid">
+                <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                    <div class="flip-card-inner">
+                        <div class="flip-front"><h3>🎮 峡谷回忆</h3><p style="font-size: 0.8rem; margin-top: 10px; opacity: 0.8;">[点击翻开]</p></div>
+                        <div class="flip-back"><h3>王者双排</h3><p style="margin-top: 10px; font-size: 0.95rem;">一起开黑的日子里，有你在身边，连连败也能变成甜蜜的笑声。</p></div>
+                    </div>
+                </div>
+                <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                    <div class="flip-card-inner">
+                        <div class="flip-front"><h3>🎵 专属歌单</h3><p style="font-size: 0.8rem; margin-top: 10px; opacity: 0.8;">[点击翻开]</p></div>
+                        <div class="flip-back"><h3>特别的人</h3><p style="margin-top: 10px; font-size: 0.95rem;">“戒了烟我不习惯，没有你我怎么办。”你是我最特别的偏爱。</p></div>
+                    </div>
+                </div>
+                <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                    <div class="flip-card-inner">
+                        <div class="flip-front"><h3>✨ 星河入梦</h3><p style="font-size: 0.8rem; margin-top: 10px; opacity: 0.8;">[点击翻开]</p></div>
+                        <div class="flip-back"><h3>🌸 专属偏爱</h3><p style="margin-top: 10px; font-size: 0.95rem;">想把天上的星星揉碎了装进你的口袋，从此你的每一个梦里，都有我闪烁的爱意。</p></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 拍立得相册墙 -->
+        <div class="glass-card">
+            <h2 class="section-title">📸 我们的记忆相框</h2>
+            <div class="photo-grid">
+                <div class="photo-item polaroid">
+                    <img src="images/photo1.jpg" alt="回忆1">
+                    <p>糟糕 是心动了吗</p>
+                </div>
+                <div class="photo-item polaroid">
+                    <img src="images/photo2.jpg" alt="回忆2">
+                    <p>不好 我怎么会喜欢上你</p>
+                </div>
+                <div class="photo-item polaroid">
+                    <img src="images/photo3.jpg" alt="回忆3">
+                    <p>嘿嘿 我的小喵宝宝</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 互动触碰爱心按钮 -->
+        <div class="glass-card interactive-box">
+            <h2 style="margin-bottom: 20px;">💌 属于小喵的专属彩蛋</h2>
+            <button class="heart-btn" onclick="openModal()">点击接收一封加密情书</button>
+        </div>
+    </div>
+
+    <!-- 弹窗情书 Modal -->
+    <div class="modal" id="loveModal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <h2 style="color: #ff4757; margin-bottom: 15px;">致 最亲爱的小喵 🐱</h2>
+            <p style="line-height: 1.8; color: #cbd5e1; text-align: left; margin-bottom: 20px;">
+                这是我慢慢学者搭建的小天地。<br>
+                里面有我们一起走过的日子，有我对你满满的爱意。<br>
+                你是我生命中最特别的存在，每一次的心跳都因你而加速<br>
+                未来的日子，无论是峡谷里的双排，还是现实中的风景，我都想陪你一起去探索！
+            </p>
+            <p style="text-align: right; color: #ff6b81; font-weight: bold;">—— 永远偏爱你的男朋友 ❤️</p>
+        </div>
+    </div>
+
+    <footer>
+        <p>Designed with ❤️ for My Girlfriend</p>
+    </footer>
+
+    <script>
+        // 固定的确立关系时间（2026年7月26日）
+        const startDate = new Date(2026, 6, 26, 0, 0, 0); 
+
+        function updateTimer() {
+            const currentNow = new Date();
+            const diff = currentNow - startDate;
+            
+            if (diff > 0) {
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+                const minutes = Math.floor((diff / 1000 / 60) % 60);
+                const seconds = Math.floor((diff / 1000) % 60);
+
+                document.getElementById('days').innerText = days;
+                document.getElementById('hours').innerText = hours;
+                document.getElementById('minutes').innerText = minutes;
+                document.getElementById('seconds').innerText = seconds;
+            }
+        }
+        setInterval(updateTimer, 1000);
+        updateTimer();
+
+        // 背景音乐控制
+        const bgm = document.getElementById('bgm');
+        const musicBtn = document.getElementById('musicBtn');
+
+        function toggleMusic() {
+            if (bgm.paused) {
+                bgm.play();
+                musicBtn.classList.add('playing');
+            } else {
+                bgm.pause();
+                musicBtn.classList.remove('playing');
+            }
+        }
+
+        document.body.addEventListener('click', function autoPlay() {
+            if (bgm.paused) {
+                bgm.play().then(() => musicBtn.classList.add('playing')).catch(() => {});
+            }
+            document.body.removeEventListener('click', autoPlay);
+        });
+
+        // 弹窗逻辑
+        function openModal() { document.getElementById('loveModal').style.display = 'flex'; }
+        function closeModal() { document.getElementById('loveModal').style.display = 'none'; }
+
+        // 动态爱心粒子背景 Canvas
+        const canvas = document.getElementById('bgCanvas');
+        const ctx = canvas.getContext('2d');
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+
+        window.addEventListener('resize', () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        });
+
+        const hearts = [];
+        for (let i = 0; i < 30; i++) {
+            hearts.push({
+                x: Math.random() * width,
+                y: Math.random() * height,
+                size: Math.random() * 10 + 5,
+                speedY: Math.random() * 1 + 0.5,
+                opacity: Math.random() * 0.7 + 0.3
+            });
+        }
+
+        function drawHearts() {
+            ctx.clearRect(0, 0, width, height);
+            hearts.forEach(h => {
+                ctx.fillStyle = `rgba(255, 71, 87, ${h.opacity})`;
+                ctx.beginPath();
+                ctx.arc(h.x, h.y, h.size / 2, 0, Math.PI * 2);
+                ctx.fill();
+
+                h.y -= h.speedY;
+                if (h.y < -10) {
+                    h.y = height + 10;
+                    h.x = Math.random() * width;
+                }
+            });
+            requestAnimationFrame(drawHearts);
+        }
+        drawHearts();
+    </script>
+</body>
+</html>
